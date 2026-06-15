@@ -10,7 +10,13 @@ import asyncio
 from dotenv import load_dotenv
 from utils import clean_html_text
 
+
+#========================================
+from fastmcp import FastMCP
+
 load_dotenv()
+
+mcp = FastMCP("Docs")
 
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 SERPER_URL = "https://google.serper.dev/search"
@@ -51,20 +57,17 @@ print(res)
 # Step 2: Open Official Documentation
 
 async def fetch_url(url: str):
-    async with httpx.AsyncClient as client:
-         response = await client.post(
+    async with httpx.AsyncClient() as client:
+         response = await client.get(
             url,
             timeout=30.0
         )
-         
          cleaned_response = clean_html_text(response.text)
-         
          return cleaned_response
     
 
 
 # Step 3: Read Documentation and Write Code
-
 docs_urls = {
 "langchain": "python.langchain.com/docs",
 "llama-index": "docs.llamaindex.ai/en/stable",
@@ -72,6 +75,7 @@ docs_urls = {
 "uv": "docs.astral.sh/uv"
 }
 
+@mcp.tool()
 async def get_docs(query: str, libray:str):
     
     """
@@ -85,30 +89,30 @@ async def get_docs(query: str, libray:str):
     Returns:
         Summarized text from the docs with source links.
     """
-    
     if libray not in docs_urls:
         raise ValueError(f"Library {libray} not Supported in This Tools")
-    
-    query = f"site{docs_urls[libray]}{query}"
-    
+    query = f"site:{docs_urls[libray]} {query}"
     results = await search_web(query)
     
     if len(results["organic"])==0:
         return "No Result Found"
     
-    
     text_parts = []
     for result in results["organic"]:
         link = result.get("link", "")
-        
         raw = await fetch_url(link)
         if raw:
             labeled = f"SOURCE: {link}\n{raw}"
-        
-            text_parts.append(labeled)
-            
-            
+            text_parts.append(labeled)           
     return "\n\n".join(text_parts)
+
+
+def main():
+    
+    mcp.run(transport="stdio")
+    
+if __name__ == "__main__":
+    main()
     
     
 
