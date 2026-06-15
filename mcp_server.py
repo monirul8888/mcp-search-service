@@ -48,6 +48,20 @@ print(res)
 
 
 
+async def fetch_url(url: str):
+    async with httpx.AsyncClient as client:
+         response = await client.post(
+            url,
+            timeout=30.0
+        )
+         
+         cleaned_response = clean_html_text(response)
+         
+         return cleaned_response.text
+    
+
+
+
 
 
 
